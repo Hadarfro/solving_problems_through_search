@@ -1,0 +1,10 @@
+IDA*
+with time
+with open
+R,B,G
+_,R,_
+B,G,X
+Goal state:
+G,R,B
+_,B,_
+R,G,X
