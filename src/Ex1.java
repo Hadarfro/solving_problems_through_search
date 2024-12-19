@@ -21,7 +21,7 @@ public class Ex1 {
             SearchResult result = algorithm.search();
 
             // Write output to file
-            writeOutputFile(result);
+            writeOutputFile(result.solution,result.nodesCreated,result.cost,result.runtime);
         }
         catch (IOException e) {
             System.err.println("Error processing file: " + e.getMessage());
@@ -36,7 +36,7 @@ public class Ex1 {
 
             // Parse time printing option
             String timeOption = reader.readLine().trim();
-            boolean printTime = timeOption.equals("with time");
+            printTime = timeOption.equals("with time");
 
             // Parse open list printing option
             String openOption = reader.readLine().trim();
@@ -87,28 +87,6 @@ public class Ex1 {
         }
     }
 
-    // Write output to file
-    private static void writeOutputFile(SearchResult result) throws IOException {
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.txt"))) {
-            // Write solution path or "no path"
-            writer.write(result.solution);
-            writer.newLine();
-
-            // Write node count
-            writer.write("Num: " + result.nodesCreated);
-            writer.newLine();
-
-            // Write solution cost
-            writer.write("Cost: " + (result.solution.equals("no path") ? "inf" : result.cost));
-            writer.newLine();
-
-            // Write runtime if required
-            if (result.runtime > 0) {
-                writer.write( "run time: " +result.runtime + "");
-            }
-        }
-    }
-
     // Method to write output to file
     private static void writeOutputFile(String solution, int nodeCount, double cost, double time) throws IOException {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter("output.txt"))) {
@@ -126,7 +104,7 @@ public class Ex1 {
 
             // Write runtime if required
             if (printTime) {
-                writer.write(time + "");
+                writer.write( "run time: " + time + "");
             }
         }
     }

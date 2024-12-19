@@ -16,6 +16,7 @@ abstract class SearchAlgorithm {
 
     // Abstract method to be implemented by each specific algorithm
     public abstract SearchResult search();
+
     // Inner class to represent search nodes
     protected class SearchNode {
         BoardState state;       // The current board state
@@ -291,38 +292,46 @@ abstract class SearchAlgorithm {
     protected int heuristic(BoardState currentState) {
         int totalDistance = 0;
 
-        if(currentState.equals(goalState)){
+        if (currentState.equals(goalState)) {
             return 0;
         }
-        // Use a more explicit assignment tracking mechanism
-        boolean[][] assignedGoals = new boolean[goalState.board.length][goalState.board[0].length];
 
         // Pre-compute goal positions for efficient lookup
         Map<Character, List<int[]>> goalPositions = precomputeGoalPositions(goalState.board);
+
+        int rows = currentState.board.length;
+        int cols = currentState.board[0].length;
 
         for (int i = 0; i < currentState.board.length; i++) {
             for (int j = 0; j < currentState.board[i].length; j++) {
                 char ball = currentState.board[i][j];
                 if (ball != '_' && ball != 'X') {
-                    int[] closestGoal = findClosestUnassignedGoal(goalPositions.get(ball), i, j, assignedGoals);
+                    // Find the minimum distance to any goal for this ball
+                    int minDistance = Integer.MAX_VALUE;
+                    for (int[] goal : goalPositions.getOrDefault(ball, Collections.emptyList())) {
+                        int distance = calculateCircularManhattanDistance(i, j, goal[0], goal[1], rows, cols);
+                        minDistance = Math.min(minDistance, distance);
+                    }
 
-                    // Ensure we mark this goal as assigned to prevent duplicate assignments
-                    assignedGoals[closestGoal[0]][closestGoal[1]] = true;
-
-                    // Calculate Manhattan distance
+                    // Multiply the distance by the ball's move cost
                     int cost = calculateMoveCostBall(ball);
-                    totalDistance += (calculateManhattanDistance(i, j, closestGoal[0], closestGoal[1]) * cost);
+                    totalDistance += (minDistance * cost);
                 }
             }
         }
+
         return totalDistance;
     }
 
-    // Separate method for Manhattan distance calculation
-    protected int calculateManhattanDistance(int x1, int y1, int x2, int y2) {
-        return Math.abs(x1 - x2) + Math.abs(y1 - y2);
+    // Circular Manhattan distance calculation
+    protected int calculateCircularManhattanDistance(int x1, int y1, int x2, int y2, int rows, int cols) {
+        // Calculate vertical and horizontal distances, considering wrapping
+        int verticalDistance = Math.min(Math.abs(x1 - x2), rows - Math.abs(x1 - x2));
+        int horizontalDistance = Math.min(Math.abs(y1 - y2), cols - Math.abs(y1 - y2));
+        return verticalDistance + horizontalDistance;
     }
 
+    // Precompute goal positions for faster lookup
     protected Map<Character, List<int[]>> precomputeGoalPositions(char[][] goalBoard) {
         Map<Character, List<int[]>> goalPositions = new HashMap<>();
 
@@ -338,25 +347,5 @@ abstract class SearchAlgorithm {
         return goalPositions;
     }
 
-    protected int[] findClosestUnassignedGoal(List<int[]> candidateGoals, int row, int col, boolean[][] assignedGoals) {
-        int[] closestGoal = null;
-        int minDistance = Integer.MAX_VALUE;
 
-        for (int[] goal : candidateGoals) {
-            // Check if this goal position is not already assigned
-            if (!assignedGoals[goal[0]][goal[1]]) {
-                int distance = calculateManhattanDistance(row, col, goal[0], goal[1]);
-                if (distance < minDistance) {
-                    minDistance = distance;
-                    closestGoal = goal;
-                }
-            }
-        }
-
-        if (closestGoal == null) {
-            throw new IllegalArgumentException("No unassigned goal position found for ball");
-        }
-
-        return closestGoal;
-    }
 }

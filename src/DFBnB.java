@@ -11,69 +11,53 @@ class DFBnBSearch extends SearchAlgorithm {
     public SearchResult search() {
         long startTime = System.currentTimeMillis();
 
-        int nodesCreated = 1;
-        int t = heuristic(initialState); // Initial upper bound
-        System.out.println("the bound is: " + t);
+        int nodesCreated = 0;
+        int t = heuristic(initialState) * 2; // Initial upper bound
         SearchResult result = null;
 
-        Stack<SearchNode> L = new Stack<>();
-        Map<BoardState, SearchNode> H = new HashMap<>();
-
+        Stack<SearchNode> stack = new Stack<>();
         SearchNode startNode = new SearchNode(initialState, null, 0, "");
-        L.push(startNode);
-        H.put(initialState, startNode);
+        stack.push(startNode);
 
-        while (!L.isEmpty()) {
-            SearchNode n = L.pop();
+        while (!stack.isEmpty()) {
+            SearchNode currentNode = stack.pop();
 
-            if (n.isMarkedOut()) {
-                H.remove(n.state); // Correctly remove node from H
-                continue;
+            if (currentNode.isMarkedOut()) {
+                continue; // Skip marked-out nodes
             }
 
-            n.setMarkedOut(true);
-            L.push(n); // Marked out nodes go back into the stack for cleanup later
+            currentNode.setMarkedOut(true);
 
             // Print open list if required
             if (printOpenList) {
                 System.out.println("Open List Contents:");
-                for (SearchNode node : L) {
+                for (SearchNode node : stack) {
                     System.out.println(node);
                 }
             }
 
-
-            n.getSuccessorsStates();
-            // Generate successors
-            List<SearchNode> successors = n.successors;
-            successors.sort(Comparator.comparingInt(SearchNode::getTotalCost)); // Use Comparator for clarity
+            // Generate and sort successors by f-cost
+            currentNode.getSuccessorsStates();
+            List<SearchNode> successors = currentNode.successors;
+            successors.sort(Comparator.comparingInt(SearchNode::getTotalCost));
 
             for (int i = 0; i < successors.size(); i++) {
                 SearchNode successor = successors.get(i);
 
-                // Prune nodes with cost >= t
-                if (successor.getTotalCost() > t) {
-                    successors = successors.subList(0, i); // Efficiently prune remaining successors
+                // Avoid revisiting states already in the current path
+                if (isInPath(successor, stack)) {
+                    continue;
+                }
+
+                // Prune nodes exceeding the current bound
+                if (successor.getTotalCost() >= t) {
+                    successors = successors.subList(0, i); // Prune successors efficiently
                     break;
                 }
 
-                SearchNode existingNode = H.get(successor.state);
-
-                // Handle nodes already in the hash table
-                if (existingNode != null) {
-                    if (successor.isMarkedOut()) {
-                        continue; // Skip already marked-out nodes
-                    } else if (existingNode.getTotalCost() <= successor.getTotalCost()) {
-                        continue; // Skip if the existing node is better or equal
-                    } else {
-                        L.remove(existingNode); // Remove the inferior node from the stack
-                        H.remove(existingNode.state);
-                    }
-                }
-
-                // Check for goal state
+                // Goal state check
                 if (successor.state.isGoalState(goalState)) {
-                    t = successor.getTotalCost();
+                    t = successor.getTotalCost(); // Update bound to the cost of the solution
                     long endTime = System.currentTimeMillis();
                     double totalTime = (endTime - startTime) / 1000.0;
                     result = new SearchResult(reconstructPath(successor), nodesCreated, successor.pathCost, totalTime);
@@ -81,9 +65,8 @@ class DFBnBSearch extends SearchAlgorithm {
                     break;
                 }
 
-                // Add the successor to the stack and hash table
-                L.push(successor);
-                H.put(successor.state, successor);
+                // Push the successor to the stack
+                stack.push(successor);
                 nodesCreated++;
             }
         }
@@ -95,5 +78,15 @@ class DFBnBSearch extends SearchAlgorithm {
         }
 
         return result;
+    }
+
+    // Helper function to check if a node is already in the current path
+    private boolean isInPath(SearchNode node, Stack<SearchNode> stack) {
+        for (SearchNode n : stack) {
+            if (n.state.equals(node.state)) {
+                return true;
+            }
+        }
+        return false;
     }
 }
