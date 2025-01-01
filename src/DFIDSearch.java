@@ -13,11 +13,11 @@ class DFIDSearch extends SearchAlgorithm {
 
         // Iteratively increase depth limit
         for (int depthLimit = 1; ; depthLimit++) {
-            Set<BoardState> path = new HashSet<>();
             nodesCreated = 0;
+            Set<BoardState> visited = new HashSet<>(); // Create hash table H
 
             // Perform depth-limited DFS
-            SearchResult result = limitedDFS(initialState, null, depthLimit, path, 0, nodesCreated);
+            SearchResult result = limitedDFS(new SearchNode(initialState, null, 0, ""), depthLimit, visited, nodesCreated);
 
             // If a solution is found, return it
             if (result != null) {
@@ -25,47 +25,59 @@ class DFIDSearch extends SearchAlgorithm {
                 return result;
             }
 
-            // Print open list if required
             if (printOpenList) {
                 System.out.println("Depth Limit " + depthLimit + " completed.");
             }
         }
     }
 
-    private SearchResult limitedDFS(BoardState state, SearchNode parent, int depthLimit,
-                                    Set<BoardState> path, int pathCost, int nodeCreated) {
-        // Check if depth limit is reached
-        if (depthLimit == 0) return null;
+    private SearchResult limitedDFS(SearchNode node, int depthLimit, Set<BoardState> visited, int nodesCreated) {
+        BoardState state = node.state;
 
-        // Print the current node if printOpenList is true
-        if (printOpenList) {
-            System.out.println(state);
-        }
-
-        // Check for goal state
+        // If goal is found, return path
         if (state.isGoalState(goalState)) {
-            return new SearchResult(reconstructPath(parent), nodeCreated, pathCost, 0); // runtime updated in main
+            return new SearchResult(reconstructPath(node), nodesCreated, node.pathCost, 0); // runtime updated in main
         }
 
-        // Add current state to path to avoid loops
-        path.add(state);
+        // If limit is 0, return cutoff
+        if (depthLimit == 0) {
+            return null; // Represents cutoff
+        }
+
+        // Insert the current state into the hash table
+        visited.add(state);
+
+        boolean isCutoff = false;
 
         // Generate successors
-        List<SearchNode> successors = generateSuccessors(new SearchNode(state, parent, pathCost, ""));
-        nodeCreated += successors.size();
+        List<SearchNode> successors = generateSuccessors(node);
+        nodesCreated += successors.size();
 
         for (SearchNode successor : successors) {
-            // Skip visited states (loop avoidance)
-            if (!path.contains(successor.state)) {
-                SearchResult result = limitedDFS(successor.state, successor, depthLimit - 1, path,
-                        successor.pathCost, nodeCreated);
-                if (result != null) return result; // Solution found
+            // If successor is already in the hash table, skip it
+            if (visited.contains(successor.state)) {
+                continue;
+            }
+
+            // Recursive call with reduced depth limit
+            SearchResult result = limitedDFS(successor, depthLimit - 1, visited, nodesCreated);
+
+            if (result == null) {
+                isCutoff = true;
+            } else if (result != null) {
+                return result; // Solution found
             }
         }
 
-        // Backtrack: Remove current state from path
-        path.remove(state);
-        return null; // No solution found at this depth
+        // Remove the current state from the hash table (release memory for `n`)
+        visited.remove(state);
+
+        // Return cutoff if necessary
+        if (isCutoff) {
+            return null; // Represents cutoff
+        }
+
+        return null; // Represents failure
     }
 
     @Override

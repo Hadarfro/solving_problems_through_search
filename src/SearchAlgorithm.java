@@ -346,6 +346,4 @@ abstract class SearchAlgorithm {
 
         return goalPositions;
     }
-
-
 }

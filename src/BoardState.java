@@ -37,6 +37,16 @@ class BoardState {
         this.trackEmptyCol = original.trackEmptyCol;
     }
 
+    // Constructor to initialize the board
+    public BoardState(char[][] board) {
+        // Deep copy the board to ensure immutability
+        this.board = new char[board.length][];
+        for (int i = 0; i < board.length; i++) {
+            this.board[i] = Arrays.copyOf(board[i], board[i].length);
+        }
+    }
+
+
     // Method to check if current state matches goal state
     public boolean isGoalState(BoardState goalState) {
         for (int i = 0; i < rows; i++) {
